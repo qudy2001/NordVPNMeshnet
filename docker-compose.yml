@@ -6,7 +6,81 @@ services:
       - /bin/bash
       - -lc
       - |
-        yes yes | /usr/local/bin/entrypoint.sh
+        set -euo pipefail
+
+        trim() {
+          local value="$$1"
+          value="$${value#"$${value%%[![:space:]]*}"}"
+          value="$${value%"$${value##*[![:space:]]}"}"
+          printf '%s' "$$value"
+        }
+
+        apply_peer_permissions() {
+          local mode="$$1"
+          local peers="$$2"
+          local peer
+
+          [ -n "$$peers" ] || return 0
+
+          IFS=',' read -r -a peer_items <<< "$$peers"
+          for peer in "$${peer_items[@]}"; do
+            peer="$$(trim "$$peer")"
+            [ -n "$$peer" ] || continue
+
+            echo "[meshnet] Allowing $${mode} for peer: $$peer"
+            nordvpn meshnet peer "$$mode" allow "$$peer"
+          done
+        }
+
+        discover_all_peers() {
+          nordvpn meshnet peer list | grep -Eo '[[:alnum:]_.-]+\.nord' | sort -u || true
+        }
+
+        apply_peer_permissions_from_lines() {
+          local mode="$$1"
+          local peers="$$2"
+          local peer
+
+          [ -n "$$peers" ] || return 0
+
+          printf '%s\n' "$$peers" | while IFS= read -r peer; do
+            peer="$$(trim "$$peer")"
+            [ -n "$$peer" ] || continue
+
+            echo "[meshnet] Allowing $${mode} for peer: $$peer"
+            nordvpn meshnet peer "$$mode" allow "$$peer"
+          done
+        }
+
+        yes yes | /usr/local/bin/entrypoint.sh &
+        entrypoint_pid=$$!
+
+        for _ in $$(seq 1 60); do
+          if nordvpn meshnet peer list >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+
+        apply_peer_permissions routing "$${NORDVPN_ALLOW_ROUTING_PEERS:-}"
+
+        if [ -n "$${NORDVPN_ALLOW_LOCAL_PEERS:-}" ]; then
+          apply_peer_permissions routing "$${NORDVPN_ALLOW_LOCAL_PEERS:-}"
+          apply_peer_permissions local "$${NORDVPN_ALLOW_LOCAL_PEERS:-}"
+        fi
+
+        if [ "$${NORDVPN_ALLOW_ALL_ROUTING:-off}" = "on" ]; then
+          all_peers="$$(discover_all_peers)"
+          apply_peer_permissions_from_lines routing "$$all_peers"
+        fi
+
+        if [ "$${NORDVPN_ALLOW_ALL_LOCAL:-off}" = "on" ]; then
+          all_peers="$$(discover_all_peers)"
+          apply_peer_permissions_from_lines routing "$$all_peers"
+          apply_peer_permissions_from_lines local "$$all_peers"
+        fi
+
+        wait "$$entrypoint_pid"
     hostname: ${NORDVPN_HOSTNAME:-meshnet-node}
     cap_add:
       - NET_ADMIN
@@ -22,6 +96,10 @@ services:
       NORDVPN_CONNECT: ${NORDVPN_CONNECT:-}
       NORDVPN_EXTRA_SUBNETS: ${NORDVPN_EXTRA_SUBNETS:-}
       NORDVPN_EXTRA_PORTS: ${NORDVPN_EXTRA_PORTS:-}
+      NORDVPN_ALLOW_ROUTING_PEERS: ${NORDVPN_ALLOW_ROUTING_PEERS:-}
+      NORDVPN_ALLOW_LOCAL_PEERS: ${NORDVPN_ALLOW_LOCAL_PEERS:-}
+      NORDVPN_ALLOW_ALL_ROUTING: ${NORDVPN_ALLOW_ALL_ROUTING:-off}
+      NORDVPN_ALLOW_ALL_LOCAL: ${NORDVPN_ALLOW_ALL_LOCAL:-off}
     healthcheck:
       test: ["CMD-SHELL", "test -S /run/nordvpn/nordvpnd.sock"]
       interval: 30s

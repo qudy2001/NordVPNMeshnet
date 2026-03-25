@@ -36,8 +36,20 @@ Image:
 - `NORDVPN_CONNECT=gb1234`
 - `NORDVPN_EXTRA_SUBNETS=192.168.1.0/24,10.0.0.0/16`
 - `NORDVPN_EXTRA_PORTS=80,443,8080`
+- `NORDVPN_ALLOW_ROUTING_PEERS=peer-one.nord,peer-two.nord`
+- `NORDVPN_ALLOW_LOCAL_PEERS=peer-one.nord`
+- `NORDVPN_ALLOW_ALL_ROUTING=on`
+- `NORDVPN_ALLOW_ALL_LOCAL=on`
 
 You can also use a token file by creating `secrets/nordvpn_token`.
+
+If you set `NORDVPN_ALLOW_ROUTING_PEERS`, the container will automatically run `nordvpn meshnet peer routing allow` for those peers on startup.
+
+If you set `NORDVPN_ALLOW_LOCAL_PEERS`, the container will automatically grant both traffic routing and local network access for those peers.
+
+If you set `NORDVPN_ALLOW_ALL_ROUTING=on`, the container will attempt to allow traffic routing for every currently linked Meshnet peer on startup.
+
+If you set `NORDVPN_ALLOW_ALL_LOCAL=on`, the container will attempt to allow both traffic routing and local network access for every currently linked Meshnet peer on startup.
 
 ## Notes
 
