@@ -30,14 +30,5 @@ services:
       - ./secrets:/run/meshnet-secrets:ro
       - nordvpn-data:/var/lib/nordvpn
 
-  example-app:
-    image: nginxdemos/hello:plain-text
-    profiles: ["example"]
-    network_mode: "service:nordvpn"
-    depends_on:
-      nordvpn:
-        condition: service_started
-    restart: unless-stopped
-
 volumes:
   nordvpn-data:
