@@ -11,26 +11,31 @@ It is set up around two current NordVPN requirements:
 - the container keeps a fixed hostname so the Meshnet hostname does not change after restarts
 - the container gets `NET_ADMIN`, `/dev/net/tun`, and `net.ipv6.conf.all.disable_ipv6=0`
 
-## Files
+## Runtime
 
-- `docker-compose.yml`: the main Meshnet stack
-- `nordvpn/Dockerfile`: builds the image from the current NordVPN Linux package repo
-- `nordvpn/entrypoint.sh`: starts the daemon, logs in with a token, and enables Meshnet
-- `.env.example`: runtime settings you can copy into `.env`
+For deployment, you only need `docker-compose.yml`.
+
+The stack pulls the prebuilt GHCR image by default, so there is no local Docker build step.
 
 ## Quick start
 
 Make sure your Docker engine is running before you start the stack.
 
-1. Copy the environment template:
+1. Set your token in the shell or in a local `.env` file:
 
    ```bash
-   cp .env.example .env
+   export NORDVPN_TOKEN=YOUR_NORDVPN_ACCESS_TOKEN
    ```
 
-2. Pick a stable value for `NORDVPN_HOSTNAME` in `.env`.
+2. Optionally override defaults such as:
 
-3. Create a token file:
+   ```bash
+   export NORDVPN_HOSTNAME=meshnet-node
+   export TZ=Europe/London
+   export NORDVPN_MESHNET=on
+   ```
+
+3. Or create a token file instead:
 
    ```bash
    mkdir -p secrets
@@ -40,10 +45,8 @@ Make sure your Docker engine is running before you start the stack.
 4. Start the stack:
 
    ```bash
-   docker compose up -d --build
+   docker compose up -d
    ```
-
-   Or pull the prebuilt image from GHCR after switching the Compose file to use `image: ghcr.io/qudy2001/nordvpnmeshnet:latest`.
 
 5. Check the Meshnet node details:
 
@@ -64,7 +67,7 @@ Make sure your Docker engine is running before you start the stack.
 The Compose file includes an optional `example-app` profile that shares the NordVPN network namespace:
 
 ```bash
-docker compose --profile example up -d --build
+docker compose --profile example up -d
 ```
 
 Any service that should be reachable through Meshnet can use:
@@ -80,6 +83,8 @@ That way, the service listens on the same Meshnet address as the `nordvpn` conta
 - If `docker compose up` fails with a `/dev/net/tun` error, move the stack to a Linux Docker host or Linux VM. NordVPN's Docker setup is documented for Linux containers.
 
 ## GitHub Container Registry
+
+The repo still includes the Docker build files for maintainers who want to republish the image.
 
 Build and push manually:
 

@@ -1,24 +1,22 @@
 services:
   nordvpn:
     image: ghcr.io/qudy2001/nordvpnmeshnet:latest
-    build:
-      context: .
-      dockerfile: ./nordvpn/Dockerfile
     container_name: meshnet-nordvpn
-    hostname: ${NORDVPN_HOSTNAME}
+    hostname: ${NORDVPN_HOSTNAME:-meshnet-node}
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      TZ: ${TZ}
+      TZ: ${TZ:-Europe/London}
+      NORDVPN_TOKEN: ${NORDVPN_TOKEN:-}
       NORDVPN_TOKEN_FILE: /run/meshnet-secrets/nordvpn_token
-      NORDVPN_MESHNET: ${NORDVPN_MESHNET}
-      NORDVPN_LAN_DISCOVERY: ${NORDVPN_LAN_DISCOVERY}
-      NORDVPN_TECHNOLOGY: ${NORDVPN_TECHNOLOGY}
-      NORDVPN_CONNECT: ${NORDVPN_CONNECT}
-      NORDVPN_EXTRA_SUBNETS: ${NORDVPN_EXTRA_SUBNETS}
-      NORDVPN_EXTRA_PORTS: ${NORDVPN_EXTRA_PORTS}
+      NORDVPN_MESHNET: ${NORDVPN_MESHNET:-on}
+      NORDVPN_LAN_DISCOVERY: ${NORDVPN_LAN_DISCOVERY:-disable}
+      NORDVPN_TECHNOLOGY: ${NORDVPN_TECHNOLOGY:-NordLynx}
+      NORDVPN_CONNECT: ${NORDVPN_CONNECT:-}
+      NORDVPN_EXTRA_SUBNETS: ${NORDVPN_EXTRA_SUBNETS:-}
+      NORDVPN_EXTRA_PORTS: ${NORDVPN_EXTRA_PORTS:-}
     healthcheck:
       test: ["CMD-SHELL", "test -S /run/nordvpn/nordvpnd.sock"]
       interval: 30s
