@@ -1,0 +1,45 @@
+services:
+  nordvpn:
+    image: ghcr.io/qudy2001/nordvpnmeshnet:latest
+    build:
+      context: .
+      dockerfile: ./nordvpn/Dockerfile
+    container_name: meshnet-nordvpn
+    hostname: ${NORDVPN_HOSTNAME}
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      TZ: ${TZ}
+      NORDVPN_TOKEN_FILE: /run/meshnet-secrets/nordvpn_token
+      NORDVPN_MESHNET: ${NORDVPN_MESHNET}
+      NORDVPN_LAN_DISCOVERY: ${NORDVPN_LAN_DISCOVERY}
+      NORDVPN_TECHNOLOGY: ${NORDVPN_TECHNOLOGY}
+      NORDVPN_CONNECT: ${NORDVPN_CONNECT}
+      NORDVPN_EXTRA_SUBNETS: ${NORDVPN_EXTRA_SUBNETS}
+      NORDVPN_EXTRA_PORTS: ${NORDVPN_EXTRA_PORTS}
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /run/nordvpn/nordvpnd.sock"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "0"
+    volumes:
+      - ./secrets:/run/meshnet-secrets:ro
+      - nordvpn-data:/var/lib/nordvpn
+
+  example-app:
+    image: nginxdemos/hello:plain-text
+    profiles: ["example"]
+    network_mode: "service:nordvpn"
+    depends_on:
+      nordvpn:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  nordvpn-data:
