@@ -2,6 +2,11 @@ services:
   nordvpn:
     image: ghcr.io/qudy2001/nordvpnmeshnet:latest
     container_name: meshnet-nordvpn
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        yes yes | /usr/local/bin/entrypoint.sh
     hostname: ${NORDVPN_HOSTNAME:-meshnet-node}
     cap_add:
       - NET_ADMIN
